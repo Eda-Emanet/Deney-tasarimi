@@ -1,0 +1,629 @@
+---
+title: "\n</center>\n\n Predict Test Scores of Students\n  "
+author: "Eda Emanet"
+output:
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+  html_document:
+    theme: simplex
+    highlight: textmate
+    fontsize: 8pt
+    toc: yes
+    number_sections: no
+    code_download: no
+    toc_float:
+      collapsed: yes
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE,fig.path = "Figs/",warning=FALSE, message=FALSE)
+
+
+#knitr::opts_knit$set(root.dir ="C:/Users/Dell/Dropbox/My PC (DESKTOP-EB8G4PC)/Desktop/dtasarım")
+
+knitr::opts_knit$set(root.dir ="C:/Users/Dell/Dropbox/My PC (DESKTOP-EB8G4PC)/Desktop/GitHub/dtasarım")
+```
+
+```{r,include=FALSE}
+library(kableExtra)
+library(knitr)
+library(stats)
+library(agricolae)
+library(nortest)
+library(cellWise)
+library(multcomp)
+library(MASS)
+library(car)
+library(lme4)
+library(olsrr)
+library(DescTools)
+library(dlookr)
+library(tidyverse)
+library(DataExplorer)      
+library(tidyverse)          
+library(see)           
+library(dlookr)            
+library(ggplot2)               
+library(ggstatsplot)        
+library(flextable)         
+library(summarytools)      
+library(CGPfunctions )              
+library(skimr)            
+library(bestNormalize)          
+library(moments)            
+library(ggpubr)           
+library(performance)        
+library(jtools)
+library(tidyverse)
+library(summarytools)
+library(plyr)
+library(dplyr)
+library(DataExplorer)
+library(haven)  
+library(purrr)
+library(readxl)
+library(rio)
+library(lubridate) 
+library(arsenal)  
+library(gapminder)
+library(DiagrammeR)
+library(kableExtra)
+library(multcompView) 
+library(rcompanion)
+library(chisq.posthoc.test) 
+library(anchors)
+library(readr)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(stringr)
+library(stringi)
+library(anchors)
+library(performance)
+library(data.table)
+library(Hmisc)
+library(ggpubr)
+library(rstatix)
+library(effects)
+library(olsrr)
+```
+## ÖN BİLGİ
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+**1. Değişkenler**
+
+
+
+     i.     school değişkeni ana faktör,
+
+     ii.    posttest bağımlı değişkendir.
+     
+     iii.   6 okul analizlerde kullanılmak üzere seçilmiştir, anlamlılık düzeyi alfa=0.05 alınmıştır.
+
+
+
+
+**2. Değişkenlerin Açıklaması :**
+
+1.    school : Gözlenen öğrencilerin okullarının isimleridir.
+
+2.     school_setting : Okulların lokasyonunu verir. Urban ( kent), Suburban (banliyö) ve Rural olmak üzere 3 düzeyi vardır.
+
+3.     school_type : Okulun türüdür. Public (devlet), Non-public (özel) olmak üzere 2 düzeyi bulunmaktadır.
+
+4.     classroom : Öğrencilerin sınıflarıdır.
+
+5.     teaching_method: Söz konusu okullarda kullanılan öğrenme metodudur. Standard ( normal), Experimental (deneysel) olmak üzere 2 türdür.
+
+6.     n_student : Öğrencilerin bulunduğu sınıftaki toplam öğrenci sayısıdır.
+
+7.     student_id : Öğrencilerın ID'sıdır.
+
+8.     gender : Öğrencinin cinsiyetidir.
+
+9.     lunch: Öğrencinin ücretsiz/burslu öğlen yemeği hakkı kazanıp kazanmadığını belirler.
+
+10.    pretest: Öğrencinin 100 puan üstünden aldığı ilk nottur.
+
+11.    posttest: Öğrencilerin 100 puan üzerinden aldığı son nottur. 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+```{r include=FALSE}
+df <- read_csv("test_scores.csv")
+summary(df)
+
+```
+
+```{r  include=FALSE}
+df1 <-df %>%
+  filter( school == "CCAAW" | school == "CUQAM" | school == "FBUMG" | school == "GOKXL" | school == "IDGFP" | school == "LAYPA")
+         
+
+df1$school <- as.factor(df1$school)
+df1$lunch<- as.factor(df1$lunch) 
+df1$gender  <- as.factor(df1$gender)
+df1$teaching_method  <- as.factor(df1$teaching_method)
+df1$school_type <- as.factor(df1$school_type)
+df1$school_setting <- as.factor(df1$school_setting)
+str(df1)
+levels(df1$school_setting)
+
+
+```
+
+```{r include=FALSE}
+data = df1
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,results='asis'}
+my_controls <- tableby.control(
+  test = T,
+  total = T,
+  numeric.test = "kwt", cat.test = "chisq",
+  numeric.stats = c("meansd", "medianq1q3", "range", "Nmiss2"),
+  cat.stats = c("countpct", "Nmiss2"),
+  stats.labels = list(
+    meansd = "Mean (SD)",
+    medianq1q3 = "Median (Q1, Q3)",
+    range = "Min - Max",
+    Nmiss2 = "Missing"
+  )
+)
+
+tab1 <- tableby(school ~ posttest +pretest+ teaching_method +gender , data=data, control = my_controls)
+summary(tab1, digits= 1)
+
+```
+
+
+# Tek Yönlü Anova 
+
+```{r include=FALSE}
+model1 <- aov( posttest ~ school , data= df1)
+
+summary(model1)
+
+```
+
+
+
+
+
+![](model1.JPG)
+
+
+P değeri 0.05 değerinden ufak olduğu için, 
+
+$H_0: \mu_1=\mu_2=\mu_{3}=\mu_{4}=\mu_{5}=\mu_{6}$
+
+hipotezi reddedilir. Faktör düzeyleri yani, okullar arasında anlamlı bir farklılık vardır. Öğrencinin eğitim gördüğü okul, sınavda aldığı puanı etkilemektedir.
+
+
+
+
+
+# Rastgele Blok Tasarımı
+
+
+```{r include=FALSE}
+
+model2 <- aov( posttest ~ teaching_method + school , data= df1  )
+summary(model2)
+
+```
+
+
+
+
+![](model2.JPG)
+
+
+Öğrenme metodları gözetildiğinde school değişkeninin düzeyleri arasında anlamlı bir farklılık mevcuttur.
+
+P değeri blok faktör olan teaching metod  için 0.05 den ufak olduğundan, 
+$H_0: \beta_1=\beta_2$
+hipotezi reddedilir. Yani öğrenme metodları arasında da, anlamlı bir farklılık vardır.
+
+
+
+
+
+
+```{r}
+with(df1,interaction.plot(x.factor = teaching_method, 
+                 trace.factor = school,
+                 response = posttest,
+                 type = "l",     
+                 ylab = "Posttest",
+                 xlab = "Teaching method",
+                 col = c("blue4", "red4","yellow4","orange4","green4","pink4","brown4"),
+                 lty = 1,  # line type
+                 lwd = 2,  # line width
+                 trace.label = "Transmission",  
+                 xpd = FALSE)) 
+```
+
+
+
+
+
+```{r include=FALSE}
+model3 <- aov( posttest ~ teaching_method + school + school:teaching_method, data= df1  )
+summary(model3)
+```
+
+
+![](model3.JPG)
+
+
+
+
+
+Okullar ve eğitim türleri arasındaki etkileşim için:
+
+$H_0: \tau_{1,1}=\tau_{1,2}=\tau_{1,3}=\tau_{1,4}=\tau_{1,5}=\tau_{1,6}=\tau_{1,7}.......=\tau_{2,6}=\tau_{2,7}$
+
+
+H0 hipotezi  değeri 0.05'den ufak olduğu için red edilir. Yani okullar ve eğitim türleri arasında etkileşim anlamlıdır.
+
+# Latin Kare Yöntemi
+
+  Latin kare  yönteminin uygulanabilmesi için okul değişkeninin düzeyleri  2 olarak düzenlenlenmiştir.
+
+```{r include=FALSE}
+df2 <- df %>%
+  #select(school, posttest,  teaching_method,  school_type ) %>%
+  filter(school == "FBUMG" | school == "GOKXL" )
+str(df2)
+df2$school <- as.factor(df2$school)
+df2$gender  <- as.factor(df2$gender)
+df2$teaching_method  <- as.factor(df2$teaching_method)
+df2$school_type <- as.factor(df2$school_type)
+df2$school_setting <- as.factor(df2$school_setting)
+str(df2)
+
+
+anova1<-aov(posttest~ gender + teaching_method + school , data = df2)
+summary(anova1)
+```
+```{r include=FALSE}
+shapiro.test(anova1$residuals)
+lillie.test(anova1$residuals)
+bartlett.test(posttest~ teaching_method  , data = df2)
+car::leveneTest(posttest~ teaching_method  , data = df2)
+```
+```{r include=FALSE}
+1-pf(0.0624, 1,106)
+```
+
+
+
+
+![](modellat.JPG)
+
+
+
+
+
+
+Sonuçlara göre  school ve teaching_method değişkenlerinin p değeri < 0.05 olduğundan,  her iki değişkeninde düzeyleri arasında anlamlı bir farklılık vardır.
+$Pdeğeri = 0.814$ olduğu için cinsiyet düzeyleri arasında anlamlı bir farklılık bulunmamaktadır. 
+
+
+# ANCOVA 
+```{r include=FALSE}
+
+
+car::Anova(aov(posttest ~ pretest + school , data = df1),type="III")
+
+```
+
+
+
+![](ancova.JPG)
+
+
+  
+  Bu sonuca göre $F_0= 12.99$ olup p değeri ise < 0.05'dir. Bu durumda 
+
+$H_0: \tau_{1}=\tau_{2}=\tau_{3}=\tau_{4}=\tau_{5}=\tau_{6}$ 
+
+hipotezi red edilir. Gözlenen öğrencilerin ilk notları dikkate alındığında, alınan son notlar bakımından, okulların katkısının anlamlı olduğunu söyleyebiliriz.
+
+  Aynı zamanda  $F\beta = 563.45$ olup p değeri < 0.05 olup :
+  
+$H_0: \beta_{}=0$ hipotezi red edilir. ANCOVA kullanmak uygundur.
+
+$\sigma^2 = 16.21$  olarak hesaplanmıştır.
+ 
+
+
+# Varsayımların Kontrolü
+
+
+```{r warning=FALSE, include=FALSE}
+model1 <- aov( posttest ~  school , data= df1)
+#summary(model3)
+
+# normallik için 
+
+a =ols_test_normality(model1$residuals)
+a
+# homojen varyanslılık için:  ana faktör için:
+car::leveneTest( posttest~ school, data=df1)
+
+# blok için(d
+bartlett.test(posttest ~ school,data=df1)
+
+```
+
+
+
+
+![](varsayım.JPG)
+
+
+
+
+---
+
+* Tablodan görüldüğü üzere Kolmogorov-Smirnov ve Anderson-Darling,  H0 hipotezi olan normallik varsayımını kabul ederken Shapiro-Wilk ve Cramer-von Mises  $p_{value}<0.05$ olması sebebiyle  H0 hipotezini kabul etmemektedir. Kolmogorov-Smirnov ve Anderson-Darling göre normallik sağlanmaktadır.
+
+
+* Homojen varyanslılık varsayımı olan H0 hipotezi, $p_{value}<0.05$ olduğundan hem Levene hem Bartlett  test tarafından red edilmektedir. Homojen varyanslılık sağlanmamaktadır. 
+
+---
+
+
+
+#### Normality Plots
+
+#### {.tabset .tubset-fade .tabset-pills}
+
+##### Log ve karekök Dönüşümü
+```{r }
+df1%>%
+  plot_normality(posttest)
+```
+
+
+##### Yeo-Johnson ve Box-Cox Dönüşümü
+
+
+```{r}
+df1%>%
+  plot_normality(posttest, left = "Yeo-Johnson", right ="Box-Cox")
+```
+
+
+##### Küp ve Kare Dönüşümü
+
+```{r}
+df1%>%
+  plot_normality(posttest, left = "x^3", right= "x^2")
+```
+
+
+
+
+
+#### {-}
+
+
+
+---
+
+
+
+
+
+
+```{r warning=FALSE, include=FALSE}
+model_log<- aov(log(posttest)~  school , data= df1)
+
+ols_test_normality(model_log$residuals)
+
+# homojen varyanslılık için:  ana faktör için:
+car::leveneTest( log(posttest)~ school, data=df1)
+
+
+# blok için(d
+bartlett.test(log(posttest) ~  school,data=df1)
+```
+
+## Log Dönüşümü
+
+
+
+
+![](donusum1.JPG)
+
+
+
+Log dönüşümü sonrası $p_{value}<0.05$ olup  H0 red edilmektedir, varyans homojenliğini sağlanmamaktadır, normalliği de Anderson-Darling  testinde bozmuştur. Log dönüşümü verimiz için uygun değildir.
+
+
+
+
+```{r warning=FALSE, include=FALSE}
+model_sqrt<- aov(sqrt(posttest)~  school , data= df1)
+
+ols_test_normality(model_sqrt$residuals)
+
+# homojen varyanslılık için:  ana faktör için:
+car::leveneTest( sqrt(posttest)~ school, data=df1)
+
+
+# blok için(d
+bartlett.test(sqrt(posttest) ~  school,data=df1)
+```
+
+# Karekök Dönüşümü
+
+
+
+![](donusum2.JPG)
+
+
+
+
+Karekök dönüşümü sonrası $p_{value}<0.05$ olup  H0 red edilmektedir, varyans homojenliğini sağlanmamaktadır. Karekök dönüşümü  verimiz için uygun değildir
+
+
+
+
+
+```{r  warning=FALSE, include=FALSE}
+model3 <- aov( posttest ~  school, data= df1)
+a2 <- MASS::boxcox(model3, family= "yjPower", plotit = FALSE)
+lambda2 <- a2$x[which.max(a2$y)]
+lambda2
+
+model_yj <- aov( (posttest^lambda2) ~  school, data= df1  )
+#summary(model31)
+
+
+ols_test_normality(model_yj$residuals)
+
+# homojen varyanslılık için:  ana faktör için:
+car::leveneTest( (posttest^lambda2)~ school, data=df1)
+
+# blok için(d
+bartlett.test((posttest^lambda2) ~  school,data=df1)
+
+```
+
+
+
+# Yeo- Johson Dönüşümü 
+
+
+
+
+![](donusum3.JPG)
+
+
+
+
+Yeo- Johson dönüşümü sonrası $p_{value}<0.05$ olup  H0 red edilmektedir, varyans homojenliğini sağlanmamaktadır.
+
+
+```{r warning=FALSE, include=FALSE}
+
+bc<- MASS::boxcox(model1)
+lambda <- bc$x[which.max(bc$y)]
+lambda
+model_bc <- aov((posttest^lambda)~  school, data= df1)
+
+ols_test_normality(model_bc$residuals)
+
+# homojen varyanslılık için:  ana faktör için:
+car::leveneTest((posttest^lambda)~ school, data=df1)
+
+
+# blok için(d
+bartlett.test((posttest^lambda) ~  school,data=df1)
+```
+
+
+
+# Box-Cox Dönüşümü
+
+
+
+![](donusum4.JPG)
+
+
+
+
+Box-Cox dönüşümü sonrası $p_{value}<0.05$ olup  H0 red edilmektedir, varyans homojenliğini sağlanmamaktadır.
+Bu durumda , EKK tahmin edicileri yine yansız olur fakat minimum varyanslı olma özelliklerini kaybderler.
+
+
+
+
+# İkili Karşılaştırma
+
+```{r include=FALSE}
+aa=PostHocTest(model1, which = NULL,
+            method = c("hsd", "bonferroni", "lsd", "scheffe", "newmankeuls", "duncan"),
+            conf.level = 0.95, ordered = FALSE)
+
+scheffe_out2<-scheffe.test(model1,"school",group=TRUE)
+posttest  = scheffe_out2$groups$posttest 
+groups = scheffe_out2$groups$groups
+scool = c("IDGFP","FBUMG","CCAAW","LAYPA","CUQAM","GOKXL")
+data = as.data.frame(posttest,scool)
+data = cbind(data,groups)
+data
+```
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE,results='asis'}
+
+kbl(data) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+
+```
+
+-   Aynı harfleri taşıyan okullar benzerdir.
+-   FBUMG - CCAAW ve CUQAM - GOKXL  okulları  arasında  anlamlı bir farklılık yoktur. 
+
+
+# Çoklu karşılaştırma:
+
+```{r include=FALSE}
+# CCAAW,CUQAM,FBUMG,GOKXL,IDGFP,LAYPA
+ #   3,   5,     2,    6,   1,    4
+# laypa +GOKXL = IDGFP+CUQAM
+scheffe <- ScheffeTest( model1, contrasts =  c(0,-1,0, 1,-1,1), nrow =2, ncol=2 )
+#,0,-1, 1,0,1,0,---0,1,0,0,-1, 1,---1,1,0,0,-1,1,0,0,-1,0,1,1
+scheffe
+
+scheffe2 <- ScheffeTest( model1, contrasts =  c(0,-1, 1,0,1,0), nrow =2, ncol=3 )
+scheffe2 
+
+scheffe3 <- ScheffeTest( model1, contrasts =  c(0,1,0,0,-1, 1), nrow =2, ncol=2 )
+scheffe3 
+
+scheffe4 <- ScheffeTest( model1, contrasts =  c(1,1,0,0,-1,1), nrow =2, ncol=2 )
+scheffe4 
+
+scheffe4$school
+scheffe2$school
+scheffe3
+data2 = rbind(scheffe4$school,scheffe2$school, scheffe3$school)
+data2 = as.data.frame(data2)
+```
+
+```{r,echo=FALSE, message=FALSE, warning=FALSE,results='asis'}
+
+kbl(data2) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+
+```
+
+ 
+-   $H_0: \mu_{GOKXL}+\mu_{LAYPA}-\mu_{CUQAM}-\mu_{IDGFP}=0$ hipotezi $P_{value} < 0.05$ olduğundan red edilmiştir. GOKXL,LAYPA okullarına ait  ortalamlar ile CUQAM,IDGFP  okullarına ait  ortalamların farkı arasında anlamlı bir farklılık vardır.
+
+-   $H_0: \mu_{FBUMG}+\mu_{IDGFP}+\mu_{LAYPA}-\mu_{CUQAM}=0$ hipotezi $P_{value} < 0.05$ olduğundan red edilmiştir. FBUMG,IDGFP okullarına ait  ortalamlar ile CUQAM  okulunun ortalmasının  farkı arasında anlamlı bir farklılık vardır.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
